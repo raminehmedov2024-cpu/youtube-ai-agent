@@ -1,0 +1,8 @@
+file 'C:/Users/ramin/Documents/youtube-ai-agent/temp/s1.mp4'
+file 'C:/Users/ramin/Documents/youtube-ai-agent/temp/s2.mp4'
+file 'C:/Users/ramin/Documents/youtube-ai-agent/temp/s3.mp4'
+file 'C:/Users/ramin/Documents/youtube-ai-agent/temp/s4.mp4'
+file 'C:/Users/ramin/Documents/youtube-ai-agent/temp/s5.mp4'
+file 'C:/Users/ramin/Documents/youtube-ai-agent/temp/s6.mp4'
+file 'C:/Users/ramin/Documents/youtube-ai-agent/temp/s7.mp4'
+file 'C:/Users/ramin/Documents/youtube-ai-agent/temp/s8.mp4'

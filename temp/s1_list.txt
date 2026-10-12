@@ -1,0 +1,3 @@
+file 'C:/Users/ramin/Documents/youtube-ai-agent/temp/s1_seg0.mp4'
+file 'C:/Users/ramin/Documents/youtube-ai-agent/temp/s1_seg1.mp4'
+file 'C:/Users/ramin/Documents/youtube-ai-agent/temp/s1_seg2.mp4'

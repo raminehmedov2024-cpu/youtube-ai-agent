@@ -1,0 +1,19 @@
+1
+00:00:00,000 --> 00:00:01,603
+That sideways speed is the
+
+2
+00:00:01,603 --> 00:00:03,144
+key. As the station falls
+
+3
+00:00:03,144 --> 00:00:05,239
+toward Earth, the planet's surface
+
+4
+00:00:05,239 --> 00:00:06,842
+curves away beneath it, so
+
+5
+00:00:06,842 --> 00:00:08,568
+it keeps missing the ground.

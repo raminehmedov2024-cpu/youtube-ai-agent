@@ -1,0 +1,23 @@
+1
+00:00:00,000 --> 00:00:02,037
+Astronauts on the space station
+
+2
+00:00:02,037 --> 00:00:04,205
+float around like gravity doesn't
+
+3
+00:00:04,205 --> 00:00:05,979
+exist. But here's the crazy
+
+4
+00:00:05,979 --> 00:00:07,621
+part: gravity up there is
+
+5
+00:00:07,621 --> 00:00:09,264
+still about 90 percent as
+
+6
+00:00:09,264 --> 00:00:10,512
+strong as on Earth.

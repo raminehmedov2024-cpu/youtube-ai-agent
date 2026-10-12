@@ -1,0 +1,19 @@
+1
+00:00:00,000 --> 00:00:02,321
+The station orbits roughly 400
+
+2
+00:00:02,321 --> 00:00:05,028
+kilometers up. That's tiny compared
+
+3
+00:00:05,028 --> 00:00:07,039
+to Earth's radius of about
+
+4
+00:00:07,039 --> 00:00:09,592
+6,400 kilometers, so Earth's pull
+
+5
+00:00:09,592 --> 00:00:10,752
+barely weakens.

@@ -1,0 +1,503 @@
+from pathlib import Path
+import json
+import sys
+
+import streamlit as st
+
+
+# =========================
+# PATHS
+# =========================
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+OUTPUT_DIR = ROOT_DIR / "output"
+OUTPUT_DIR.mkdir(exist_ok=True)
+USED_FILE = OUTPUT_DIR / "used_topics.json"
+SETTINGS_FILE = OUTPUT_DIR / "settings.json"
+SCRIPT_FILE = OUTPUT_DIR / "script.json"
+MANUAL_SCRIPT_FILE = OUTPUT_DIR / "manual_script.txt"
+YOUTUBE_META_FILE = OUTPUT_DIR / "youtube_meta.json"
+AUDIO_FILE = ROOT_DIR / "data" / "audio" / "generated_voice.mp3"
+
+LANG_MAP = {
+    "Azərbaycan dili": "Azerbaijani",
+    "English": "English",
+    "Türkçe": "Turkish",
+    "Русский": "Russian",
+    "Deutsch": "German",
+}
+
+
+# =========================
+# PAGE CONFIG
+# =========================
+
+st.set_page_config(
+    page_title="YouTube AI Agent",
+    page_icon="🎬",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+
+# =========================
+# CUSTOM CSS
+# =========================
+
+st.markdown("""
+<style>
+:root {
+    --bg: #0d0a1a;
+    --panel: #161126;
+    --panel2: #1d1633;
+    --border: #2a2145;
+    --accent: #8b5cf6;
+    --muted: #9b92b8;
+}
+.stApp { background: var(--bg); }
+section[data-testid="stSidebar"] {
+    background: #0f0b1f;
+    border-right: 1px solid var(--border);
+}
+.block-container { padding-top: 2rem; max-width: 1400px; }
+h1, h2, h3 { color: #f2eefc; }
+.hero {
+    padding: 28px; border-radius: 18px;
+    background: linear-gradient(160deg, var(--panel2), var(--panel));
+    border: 1px solid var(--border); margin-bottom: 22px;
+}
+.hero h1 { font-size: 40px; margin: 0 0 6px 0; }
+.hero p { color: var(--muted); margin: 0; font-size: 17px; }
+div[data-testid="stMetric"] {
+    background: linear-gradient(160deg, var(--panel2), var(--panel));
+    border: 1px solid var(--border); border-radius: 16px; padding: 18px;
+}
+div[data-testid="stMetricValue"] { color: #f2eefc; }
+div[data-testid="stMetricLabel"] { color: var(--muted); }
+div.stButton > button {
+    background: linear-gradient(90deg, var(--accent), #7c3aed);
+    color: #fff; border: none; border-radius: 12px; font-weight: 600;
+}
+div.stButton > button:hover { filter: brightness(1.1); color: #fff; }
+div[role="radiogroup"] > label > div:first-child { display: none; }
+div[role="radiogroup"] > label {
+    padding: 10px 14px; border-radius: 10px; margin-bottom: 4px;
+}
+div[role="radiogroup"] > label:hover { background: var(--panel); }
+div[role="radiogroup"] > label:has(input:checked) {
+    background: linear-gradient(90deg, var(--accent), #7c3aed);
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+# =========================
+# HELPERS
+# =========================
+
+def load_json(path, default):
+    if path.exists():
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    return default
+
+
+def save_json(path, data):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def save_setting(section, values):
+    settings = load_json(SETTINGS_FILE, {})
+    settings[section] = values
+    save_json(SETTINGS_FILE, settings)
+
+
+def latest_video():
+    videos = sorted(OUTPUT_DIR.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)
+    return videos[0] if videos else None
+
+
+def count_videos():
+    return len(list(OUTPUT_DIR.glob("*.mp4")))
+
+
+def count_used_topics():
+    return len(load_json(USED_FILE, []))
+
+
+def last_title():
+    result = st.session_state.get("last_result")
+    return result.get("title", "") if result else ""
+
+
+# =========================
+# SIDEBAR
+# =========================
+
+with st.sidebar:
+    st.markdown("## 🎬 YouTube AI Agent")
+    st.markdown("---")
+    page = st.radio(
+        "MENU",
+        [
+            "🏠 Dashboard",
+            "📝 Script",
+            "🎙️ Voice",
+            "🎵 Music",
+            "🔊 Sound Effects",
+            "🎥 Visuals",
+            "✂️ Editing",
+            "🖼️ Thumbnail",
+            "📤 YouTube",
+        ],
+    )
+    st.markdown("---")
+    st.markdown(
+        """
+        **AI Video Studio**
+
+        Videonun bütün mərhələlərini buradan idarə edə bilərsən.
+        """
+    )
+
+
+# =========================
+# DASHBOARD
+# =========================
+
+if page == "🏠 Dashboard":
+
+    st.markdown(
+        """
+        <div class="hero">
+            <h1>🎬 YouTube AI Agent</h1>
+            <p>AI ilə YouTube videolarını peşəkar şəkildə hazırla.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    video = latest_video()
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("🎥 Hazır videolar", count_videos())
+    col2.metric("🧠 İstifadə olunan mövzular", count_used_topics())
+    col3.metric("🕒 Son video", video.name if video else "Yoxdur")
+    col4.metric("🎙️ Səs faylı", "Var" if AUDIO_FILE.exists() else "Yoxdur")
+
+    st.markdown("## 🚀 Video yarat")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        topic = st.text_input(
+            "Video mövzusu (boş qoysan AI mövzu seçəcək)",
+            placeholder="Məsələn: Süni intellekt gələcəkdə işləri necə dəyişəcək?",
+        )
+        niche = st.text_input(
+            "Niş",
+            placeholder="Məsələn: Texnologiya, Tarix, Maliyyə",
+        )
+    with col2:
+        language = st.selectbox("Video dili", list(LANG_MAP.keys()))
+        fmt = st.radio("Format", ["Shorts (9:16)", "Uzun video (16:9)"], horizontal=True)
+
+    if st.button("🚀 Video layihəsi yarat", use_container_width=True):
+        if not topic.strip() and not niche.strip():
+            st.warning("Mövzu və ya niş yazın.")
+        else:
+            try:
+                from agent import make_one
+
+                with st.spinner("Video hazırlanır... bu bir neçə dəqiqə çəkə bilər."):
+                    result = make_one(
+                        niche=niche.strip() or topic.strip(),
+                        topic=topic.strip() or None,
+                        language=LANG_MAP[language],
+                        fmt="shorts" if fmt.startswith("Shorts") else "long",
+                    )
+                st.session_state["last_result"] = result
+                st.success("✅ Video hazırdır!")
+            except Exception as e:
+                st.error(f"❌ Xəta: {e}")
+
+    result = st.session_state.get("last_result")
+    if result:
+        st.markdown("### Son nəticə")
+        st.write(f"**Mövzu:** {result.get('topic', '')}")
+        st.write(f"**Başlıq:** {result.get('title', '')}")
+        video_path = Path(result.get("video", ""))
+        if video_path.exists():
+            st.video(str(video_path))
+            with open(video_path, "rb") as f:
+                st.download_button(
+                    "⬇️ Videonu yüklə",
+                    f,
+                    file_name=video_path.name,
+                    mime="video/mp4",
+                    use_container_width=True,
+                )
+
+
+# =========================
+# SCRIPT
+# =========================
+
+elif page == "📝 Script":
+
+    st.title("📝 Script Studio")
+    st.write("Ssenarini AI ilə yarat və ya özün yaz.")
+
+    mode = st.radio("Script üsulu", ["🤖 AI ilə yarat", "✍️ Manual yaz"], horizontal=True)
+
+    if mode == "🤖 AI ilə yarat":
+
+        topic = st.text_input("Video mövzusu", key="script_topic")
+        niche = st.text_input("Niş", placeholder="Məsələn: Texnologiya", key="script_niche")
+        language = st.selectbox("Script dili", list(LANG_MAP.keys()), key="script_lang")
+
+        if st.button("✨ AI Script yarat", use_container_width=True):
+            if not topic.strip():
+                st.warning("Mövzu yazın.")
+            else:
+                try:
+                    from write_bridge import generate_script
+
+                    with st.spinner("Ssenari yazılır..."):
+                        data = generate_script(
+                            topic.strip(),
+                            niche.strip() or topic.strip(),
+                            LANG_MAP[language],
+                        )
+                    st.session_state["script_data"] = data
+                    save_json(SCRIPT_FILE, data)
+                    st.success("✅ Ssenari hazırdır")
+                except Exception as e:
+                    st.error(f"❌ Xəta: {e}")
+
+        data = st.session_state.get("script_data") or load_json(SCRIPT_FILE, None)
+        if data:
+            st.markdown(f"### {data.get('title', '')}")
+            edited = []
+            for i, scene in enumerate(data.get("scenes", []), start=1):
+                text = st.text_area(
+                    f"Səhnə {i}",
+                    value=scene.get("narration", ""),
+                    key=f"scene_{i}",
+                )
+                edited.append({**scene, "narration": text})
+            if st.button("💾 Dəyişiklikləri yadda saxla"):
+                data["scenes"] = edited
+                st.session_state["script_data"] = data
+                save_json(SCRIPT_FILE, data)
+                st.success("Yadda saxlanıldı")
+
+    else:
+
+        script = st.text_area("Script", height=400, placeholder="Scriptinizi buraya yazın...")
+        if st.button("💾 Script yadda saxla"):
+            with open(MANUAL_SCRIPT_FILE, "w", encoding="utf-8") as f:
+                f.write(script)
+            st.success("Script yadda saxlanıldı")
+
+
+# =========================
+# VOICE
+# =========================
+
+elif page == "🎙️ Voice":
+
+    st.title("🎙️ AI Voice Studio")
+    st.write("Videon üçün AI səsini buradan yarat.")
+
+    voice_options = {
+        "Azərbaycan - Babək": "az-AZ-BabekNeural",
+        "Azərbaycan - Banu": "az-AZ-BanuNeural",
+        "Türk - Ahmet": "tr-TR-AhmetNeural",
+        "Türk - Emel": "tr-TR-EmelNeural",
+        "English - Guy": "en-US-GuyNeural",
+        "English - Jenny": "en-US-JennyNeural",
+        "English - Christopher": "en-US-ChristopherNeural",
+    }
+
+    voice_name = st.selectbox("AI Voice seç", list(voice_options.keys()))
+
+    col1, col2 = st.columns(2)
+    with col1:
+        speed = st.slider("Səs sürəti", -50, 50, 0, 5)
+    with col2:
+        st.info(f"Seçilmiş səs: {voice_name}")
+
+    text = st.text_area(
+        "Səsləndiriləcək mətn",
+        height=220,
+        placeholder="Buraya videoda səsləndiriləcək mətni yaz...",
+    )
+
+    if st.button("🔊 SƏSİ YARAT", use_container_width=True):
+        if not text.strip():
+            st.warning("Əvvəlcə mətn yaz.")
+        else:
+            try:
+                from voice import generate_voice
+
+                AUDIO_FILE.parent.mkdir(parents=True, exist_ok=True)
+                rate = f"{speed:+d}%"
+
+                with st.spinner("AI səsi hazırlanır..."):
+                    generate_voice(text.strip(), str(AUDIO_FILE), voice_options[voice_name], rate)
+
+                st.success("✅ Səs uğurla yaradıldı!")
+                st.audio(str(AUDIO_FILE), format="audio/mp3")
+                with open(AUDIO_FILE, "rb") as audio_file:
+                    st.download_button(
+                        "⬇️ MP3 yüklə",
+                        audio_file,
+                        file_name="generated_voice.mp3",
+                        mime="audio/mpeg",
+                        use_container_width=True,
+                    )
+            except Exception as e:
+                st.error(f"❌ Səs yaradılarkən xəta baş verdi: {e}")
+
+
+# =========================
+# MUSIC
+# =========================
+
+elif page == "🎵 Music":
+
+    st.title("🎵 Music Studio")
+
+    music = st.selectbox(
+        "Background Music",
+        ["Cinematic", "Documentary", "Technology", "Emotional", "Suspense", "Inspirational", "No Music"],
+    )
+    volume = st.slider("Music volume", 0, 100, 30)
+
+    if st.button("💾 Musiqi seçimini yadda saxla", use_container_width=True):
+        save_setting("music", {"style": music, "volume": volume})
+        st.success(f"Yadda saxlanıldı: {music}, səviyyə {volume}%")
+
+
+# =========================
+# SOUND EFFECTS
+# =========================
+
+elif page == "🔊 Sound Effects":
+
+    st.title("🔊 Sound Effects Studio")
+    st.write("Videoda istifadə ediləcək səs effektlərini seç.")
+
+    sound_effect = st.selectbox(
+        "Səs effekti",
+        ["Whoosh", "Impact", "Hit", "Door", "Rain", "Fire", "Electricity", "Wind", "Footsteps", "Notification"],
+    )
+    volume = st.slider("Effekt səsi", 0, 100, 70)
+    duration = st.selectbox("Effekt uzunluğu", ["0.5 saniyə", "1 saniyə", "2 saniyə", "3 saniyə", "5 saniyə"])
+
+    if st.button("💾 Effekt seçimini yadda saxla", use_container_width=True):
+        save_setting("sound_effects", {"effect": sound_effect, "volume": volume, "duration": duration})
+        st.success(f"Yadda saxlanıldı: {sound_effect}")
+
+
+# =========================
+# VISUALS
+# =========================
+
+elif page == "🎥 Visuals":
+
+    st.title("🎥 AI Visual Studio")
+
+    visual_source = st.selectbox(
+        "Vizual mənbə",
+        ["Stock Footage (Pixabay)", "AI Image Generator", "AI Video Generator"],
+    )
+    style = st.selectbox("Visual Style", ["Cinematic", "Realistic", "Documentary", "3D", "Anime", "Minimal"])
+
+    if st.button("💾 Vizual seçimini yadda saxla", use_container_width=True):
+        save_setting("visuals", {"source": visual_source, "style": style})
+        st.success(f"Yadda saxlanıldı: {visual_source}, {style}")
+
+
+# =========================
+# EDITING
+# =========================
+
+elif page == "✂️ Editing":
+
+    st.title("✂️ Video Editing")
+
+    editing = st.selectbox(
+        "Montaj sistemi",
+        ["Automatic Editing", "Manual Editing", "Cinematic Editing", "Shorts Editing", "Documentary Editing"],
+    )
+    subtitles = st.checkbox("Automatic subtitles", value=True)
+    transitions = st.checkbox("Automatic transitions", value=True)
+    zoom = st.checkbox("Dynamic zoom", value=True)
+
+    if st.button("💾 Montaj ayarlarını yadda saxla", use_container_width=True):
+        save_setting("editing", {
+            "system": editing,
+            "subtitles": subtitles,
+            "transitions": transitions,
+            "zoom": zoom,
+        })
+        st.success("Montaj ayarları yadda saxlanıldı")
+
+
+# =========================
+# THUMBNAIL
+# =========================
+
+elif page == "🖼️ Thumbnail":
+
+    st.title("🖼️ Thumbnail Studio")
+
+    title = st.text_input("Thumbnail başlığı", value=last_title())
+
+    if st.button("✨ Thumbnail yarat", use_container_width=True):
+        video = latest_video()
+        if not video:
+            st.warning("Əvvəlcə video yaradın.")
+        elif not title.strip():
+            st.warning("Başlıq yazın.")
+        else:
+            try:
+                from thumbnail import make_thumbnail
+
+                with st.spinner("Thumbnail hazırlanır..."):
+                    make_thumbnail(video, title.strip())
+                thumb = OUTPUT_DIR / "thumbnail.jpg"
+                if thumb.exists():
+                    st.image(str(thumb), caption="Thumbnail")
+                    st.success("✅ Thumbnail hazırdır")
+                else:
+                    st.warning("Thumbnail faylı tapılmadı.")
+            except Exception as e:
+                st.error(f"❌ Xəta: {e}")
+
+
+# =========================
+# YOUTUBE
+# =========================
+
+elif page == "📤 YouTube":
+
+    st.title("📤 YouTube Upload")
+
+    title = st.text_input("YouTube başlığı", value=last_title())
+    description = st.text_area("Təsvir", height=200)
+    tags = st.text_input("Teqlər", placeholder="AI, technology, future")
+    privacy = st.selectbox("Görünüş", ["private", "unlisted", "public"])
+
+    if st.button("💾 Yükləmə məlumatını yadda saxla", use_container_width=True):
+        save_json(YOUTUBE_META_FILE, {
+            "title": title,
+            "description": description,
+            "tags": [t.strip() for t in tags.split(",") if t.strip()],
+            "privacy": privacy,
+        })
+        st.success("Yadda saxlanıldı. YouTube bağlantısı növbəti addımda qoşulacaq.")

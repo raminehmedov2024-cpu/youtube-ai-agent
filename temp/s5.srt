@@ -1,0 +1,15 @@
+1
+00:00:00,000 --> 00:00:01,619
+The station is doing the
+
+2
+00:00:01,619 --> 00:00:03,305
+same thing, but it's also
+
+3
+00:00:03,305 --> 00:00:05,395
+moving sideways at about 28,000
+
+4
+00:00:05,395 --> 00:00:06,744
+kilometers per hour.
