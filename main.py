@@ -1023,7 +1023,7 @@ if page == "🏠 Dashboard":
             else:
                 agent = try_import("agent")
                 if agent is None:
-                    st.error("❌ `agent.py` tapılmadı. Zəhmət olmasa layihəyə əlavə edin.")
+                    st.error(f"❌ agent.py açıla bilmədi. Real səbəb: {st.session_state.get('_err_agent', 'məlum deyil')}")
                 else:
                     try:
                         with st.spinner("Video hazırlanır… bir neçə dəqiqə çəkə bilər."):
@@ -1325,7 +1325,7 @@ elif page == "📝 Senaryo":
                     elif btn_yt_full_video:
                         agent = try_import("agent")
                         if agent is None:
-                            st.error("❌ `agent.py` tapılmadı. Tam video yaradılması üçün agent.py faylı tələb olunur.")
+                            st.error(f"❌ agent.py açıla bilmədi. Real səbəb: {st.session_state.get('_err_agent', 'məlum deyil')}")
                         else:
                             try:
                                 with st.spinner(f"'{extracted_title}' əsasında tam video hazırlanır... Bu bir neçə dəqiqə çəkə bilər."):
