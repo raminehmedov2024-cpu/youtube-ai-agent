@@ -702,7 +702,8 @@ def try_import(module_name):
     import importlib
     try:
         return importlib.import_module(module_name)
-    except ImportError:
+    except Exception as e:
+        st.session_state[f"_err_{module_name}"] = f"{type(e).__name__}: {e}"
         return None
 
 
