@@ -1178,7 +1178,7 @@ elif page == "📝 Senaryo":
             else:
                 mod = try_import("write_bridge")
                 if mod is None:
-                    st.error("❌ `write_bridge.py` tapılmadı. Zəhmət olmasa layihəyə əlavə edin.")
+                    st.error(f"❌ write_bridge.py açıla bilmədi. Real səbəb: {st.session_state.get('_err_write_bridge', 'məlum deyil')}")
                 else:
                     try:
                         with st.spinner("AI ssenari yazır…"):
