@@ -1,0 +1,6 @@
+anthropic
+python-dotenv
+edge-tts
+moviepy
+requests
+pillow
